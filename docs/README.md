@@ -20,6 +20,7 @@ This documentation covers standards, templates, examples, CI/CD, policy-as-code,
 - Standards: [docs/standards.md](./standards.md)
 - Module README template: [docs/module-template.md](./module-template.md)
 - Examples & usage: [docs/usage-examples.md](./usage-examples.md)
+- Azure Examples Catalog: [docs/examples-azure.md](./examples-azure.md)
 - CI/CD with security gates: [docs/ci-cd.md](./ci-cd.md)
 - Policy as Code (OPA/Conftest): [docs/policy-as-code.md](./policy-as-code.md)
 - Testing strategy (Terratest): [docs/testing.md](./testing.md)
