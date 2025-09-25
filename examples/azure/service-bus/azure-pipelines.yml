@@ -1,0 +1,64 @@
+trigger:
+  branches:
+    include: [ main ]
+pr:
+  branches:
+    include: [ main ]
+
+variables:
+  TF_IN_AUTOMATION: 'true'
+  TERRAFORM_VERSION: '1.9.5'
+  RESOURCE_GROUP_NAME: 'rg-sb-demo'
+  LOCATION: 'eastus'
+  NAMESPACE_NAME: 'sb-demo-123456'
+  QUEUE_NAME: 'queue1'
+
+stages:
+  - stage: ValidateAndPlan
+    jobs:
+      - job: plan
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Azure Login'
+            inputs:
+              azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                curl -fsSL https://releases.hashicorp.com/terraform/$(TERRAFORM_VERSION)/terraform_$(TERRAFORM_VERSION)_linux_amd64.zip -o tf.zip
+                sudo unzip -o tf.zip -d /usr/local/bin && rm tf.zip
+                terraform -version | cat
+                terraform init -input=false
+                terraform fmt -check
+                terraform validate
+                terraform plan \
+                  -var "resource_group_name=$(RESOURCE_GROUP_NAME)" \
+                  -var "location=$(LOCATION)" \
+                  -var "namespace_name=$(NAMESPACE_NAME)" \
+                  -var "queue_name=$(QUEUE_NAME)" \
+                  -out tfplan
+          - publish: tfplan
+            artifact: tfplan
+
+  - stage: Apply
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: apply
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - download: current
+            artifact: tfplan
+          - task: AzureCLI@2
+            displayName: 'Azure Login and Apply'
+            inputs:
+              azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                terraform apply -input=false tfplan
+
